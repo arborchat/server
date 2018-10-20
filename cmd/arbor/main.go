@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	. "github.com/whereswaldon/arbor/lib/messages"
+	. "github.com/arborchat/arbor-go"
 )
 
 func main() {
@@ -14,8 +14,8 @@ func main() {
 	recents := NewRecents(10)
 	address := ":7777"
 	//serve
-	if (len(os.Args) > 1) {
-    		address = os.Args[1]
+	if len(os.Args) > 1 {
+		address = os.Args[1]
 	}
 	listener, err := net.Listen("tcp", address)
 	if err != nil {

@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/whereswaldon/arbor/lib/messages"
+	messages "github.com/arborchat/arbor-go"
 )
 
 type Broadcaster struct {
