@@ -7,18 +7,18 @@ import (
 )
 
 type Broadcaster struct {
-	send       chan *messages.ArborMessage
-	disconnect chan chan<- *messages.ArborMessage
-	connect    chan chan<- *messages.ArborMessage
-	clients    map[chan<- *messages.ArborMessage]struct{}
+	send       chan *messages.ProtocolMessage
+	disconnect chan chan<- *messages.ProtocolMessage
+	connect    chan chan<- *messages.ProtocolMessage
+	clients    map[chan<- *messages.ProtocolMessage]struct{}
 }
 
 func NewBroadcaster() *Broadcaster {
 	b := &Broadcaster{
-		send:       make(chan *messages.ArborMessage),
-		connect:    make(chan chan<- *messages.ArborMessage),
-		disconnect: make(chan chan<- *messages.ArborMessage),
-		clients:    make(map[chan<- *messages.ArborMessage]struct{}),
+		send:       make(chan *messages.ProtocolMessage),
+		connect:    make(chan chan<- *messages.ProtocolMessage),
+		disconnect: make(chan chan<- *messages.ProtocolMessage),
+		clients:    make(map[chan<- *messages.ProtocolMessage]struct{}),
 	}
 	go b.dispatch()
 	return b
@@ -40,11 +40,11 @@ func (b *Broadcaster) dispatch() {
 	}
 }
 
-func (b *Broadcaster) Send(message *messages.ArborMessage) {
+func (b *Broadcaster) Send(message *messages.ProtocolMessage) {
 	b.send <- message
 }
 
-func (b *Broadcaster) trySend(message *messages.ArborMessage, client chan<- *messages.ArborMessage) {
+func (b *Broadcaster) trySend(message *messages.ProtocolMessage, client chan<- *messages.ProtocolMessage) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println("Error sending to client, removing: ", err)
@@ -55,6 +55,6 @@ func (b *Broadcaster) trySend(message *messages.ArborMessage, client chan<- *mes
 	client <- message
 }
 
-func (b *Broadcaster) Add(client chan<- *messages.ArborMessage) {
+func (b *Broadcaster) Add(client chan<- *messages.ProtocolMessage) {
 	b.connect <- client
 }

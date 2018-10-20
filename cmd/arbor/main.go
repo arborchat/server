@@ -22,13 +22,13 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Server listening on", address)
-	m, err := NewMessage("Root message")
+	m, err := NewChatMessage("Root message")
 	err = m.AssignID()
 	if err != nil {
 		log.Println(err)
 	}
 	messages.Add(m)
-	toWelcome := make(chan chan<- *ArborMessage)
+	toWelcome := make(chan chan<- *ProtocolMessage)
 	go handleWelcomes(m.UUID, recents, toWelcome)
 	log.Println("Root message UUID is " + m.UUID)
 	for {
@@ -44,10 +44,10 @@ func main() {
 	}
 }
 
-func handleWelcomes(rootId string, recents *RecentList, toWelcome chan chan<- *ArborMessage) {
+func handleWelcomes(rootId string, recents *RecentList, toWelcome chan chan<- *ProtocolMessage) {
 	for client := range toWelcome {
-		msg := ArborMessage{
-			Type:  WELCOME,
+		msg := ProtocolMessage{
+			Type:  WelcomeType,
 			Root:  rootId,
 			Major: 0,
 			Minor: 1,
@@ -60,13 +60,13 @@ func handleWelcomes(rootId string, recents *RecentList, toWelcome chan chan<- *A
 	}
 }
 
-func handleClient(from <-chan *ArborMessage, to chan<- *ArborMessage, recents *RecentList, store *Store, broadcaster *Broadcaster) {
+func handleClient(from <-chan *ProtocolMessage, to chan<- *ProtocolMessage, recents *RecentList, store *Store, broadcaster *Broadcaster) {
 	for message := range from {
 		switch message.Type {
-		case QUERY:
-			log.Println("Handling query for " + message.Message.UUID)
+		case QueryType:
+			log.Println("Handling query for " + message.ChatMessage.UUID)
 			go handleQuery(message, to, store)
-		case NEW_MESSAGE:
+		case NewMessageType:
 			go handleNewMessage(message, recents, store, broadcaster)
 		default:
 			log.Println("Unrecognized message type", message.Type)
@@ -75,24 +75,24 @@ func handleClient(from <-chan *ArborMessage, to chan<- *ArborMessage, recents *R
 	}
 }
 
-func handleQuery(msg *ArborMessage, out chan<- *ArborMessage, store *Store) {
-	result := store.Get(msg.Message.UUID)
+func handleQuery(msg *ProtocolMessage, out chan<- *ProtocolMessage, store *Store) {
+	result := store.Get(msg.ChatMessage.UUID)
 	if result == nil {
-		log.Println("Unable to find queried id: " + msg.Message.UUID)
+		log.Println("Unable to find queried id: " + msg.ChatMessage.UUID)
 		return
 	}
-	msg.Message = result
-	msg.Type = NEW_MESSAGE
+	msg.ChatMessage = result
+	msg.Type = NewMessageType
 	out <- msg
 	log.Println("Query response: ", msg.String())
 }
 
-func handleNewMessage(msg *ArborMessage, recents *RecentList, store *Store, broadcaster *Broadcaster) {
-	err := msg.Message.AssignID()
+func handleNewMessage(msg *ProtocolMessage, recents *RecentList, store *Store, broadcaster *Broadcaster) {
+	err := msg.ChatMessage.AssignID()
 	if err != nil {
 		log.Println("Error creating new message", err)
 	}
-	recents.Add(msg.Message.UUID)
-	store.Add(msg.Message)
+	recents.Add(msg.ChatMessage.UUID)
+	store.Add(msg.ChatMessage)
 	broadcaster.Send(msg)
 }
