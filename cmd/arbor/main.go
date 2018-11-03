@@ -22,7 +22,11 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Server listening on", address)
-	m, err := NewChatMessage("Root message")
+	m, err := NewChatMessage("Welcome to our server!")
+	if err != nil {
+		log.Println(err)
+	}
+	m.Username = "root"
 	err = m.AssignID()
 	if err != nil {
 		log.Println(err)
