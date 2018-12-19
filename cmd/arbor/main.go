@@ -35,6 +35,11 @@ func main() {
 	toWelcome := make(chan chan<- *ProtocolMessage)
 	go handleWelcomes(m.UUID, recents, toWelcome)
 	log.Println("Root message UUID is " + m.UUID)
+
+	// Forever listen for incoming connections
+	// If connection recieved, add to broadcaster list,
+	// start a client connection goroutine,
+	// and send welcome message
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -64,6 +69,7 @@ func handleWelcomes(rootId string, recents *RecentList, toWelcome chan chan<- *P
 	}
 }
 
+// handleClient is a goroutine that is instantiated for every client.
 func handleClient(from <-chan *ProtocolMessage, to chan<- *ProtocolMessage, recents *RecentList, store *Store, broadcaster *Broadcaster) {
 	for message := range from {
 		switch message.Type {
@@ -96,7 +102,7 @@ func handleNewMessage(msg *ProtocolMessage, recents *RecentList, store *Store, b
 	if err != nil {
 		log.Println("Error creating new message", err)
 	}
-	recents.Add(msg.ChatMessage.UUID)
+	recents.Add(msg.ChatMessage)
 	store.Add(msg.ChatMessage)
 	broadcaster.Send(msg)
 }
