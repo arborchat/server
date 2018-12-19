@@ -1,5 +1,8 @@
 package main
 
+import "log"
+import messages "github.com/arborchat/arbor-go"
+
 // The RecentList structure is designed to be completely threadsafe
 // by ensuring that all operations that touch its data occur in the
 // same goroutine (dispatch()). This goroutine is launched in its
@@ -9,7 +12,7 @@ type RecentList struct {
 	recents []string
 	index   int
 	full    bool
-	add     chan string
+	add     chan *messages.ChatMessage
 	reqData chan struct{}
 	data    chan []string
 }
@@ -19,7 +22,7 @@ type RecentList struct {
 func NewRecents(size int) *RecentList {
 	r := &RecentList{
 		recents: make([]string, size),
-		add:     make(chan string),
+		add:     make(chan *messages.ChatMessage),
 		reqData: make(chan struct{}),
 		data:    make(chan []string),
 		full:    false,
@@ -37,13 +40,29 @@ func (r *RecentList) dispatch() {
 	for {
 		select {
 		// Add function called
-		case id := <-r.add:
-			r.recents[r.index] = id
-			r.index++
-			if !r.full && r.index == len(r.recents) {
-				r.full = true
+		case msg := <-r.add:
+			// If parent message is in recent list,
+			parentIndex := -1
+			for i := 0; i < r.index; i++ {
+				if msg.Parent == r.recents[i] {
+					parentIndex = i
+					break
+				}
 			}
-			r.index %= len(r.recents)
+			// it is replaced by the new message.
+			if parentIndex > 0 {
+				id := msg.UUID
+				r.recents[parentIndex] = id
+				log.Println("replaceing recent message " + msg.Parent + " with " + msg.UUID)
+			} else {
+				id := msg.UUID
+				r.recents[r.index] = id
+				r.index++
+				if !r.full && r.index == len(r.recents) {
+					r.full = true
+				}
+				r.index %= len(r.recents)
+			}
 		// Data method called
 		case <-r.reqData:
 			buflen := r.index
@@ -60,8 +79,8 @@ func (r *RecentList) dispatch() {
 // Add attempts an addition to Recents List by sending the input ID to
 // the RecentList's add channel, triggering the corrosponding selection
 // in the dispatch goroutine.
-func (r *RecentList) Add(id string) {
-	r.add <- id
+func (r *RecentList) Add(msg *messages.ChatMessage) {
+	r.add <- msg
 }
 
 // The Data method requests a copy of the recentlist's data by sending an
