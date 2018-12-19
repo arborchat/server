@@ -61,7 +61,7 @@ func (r *RecentList) dispatch() {
 				}
 				r.index %= len(r.recents)
 			}
-		// Data method called
+		// Data function called
 		case <-r.reqData:
 			buflen := r.index
 			if r.full {
