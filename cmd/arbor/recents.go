@@ -49,7 +49,7 @@ func (r *RecentList) dispatch() {
 				}
 			}
 			// it is replaced by the new message.
-			if parentIndex > 0 {
+			if parentIndex >= 0 {
 				id := msg.UUID
 				r.recents[parentIndex] = id
 			} else {
