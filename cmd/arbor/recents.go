@@ -1,5 +1,10 @@
 package main
 
+// The RecentList structure is designed to be completely threadsafe
+// by ensuring that all operations that touch its data occur in the
+// same goroutine (dispatch()). This goroutine is launched in its
+// constructor, and it just infinitely loops in the dispatch method
+// waiting for activity on channels.
 type RecentList struct {
 	recents []string
 	index   int
@@ -9,6 +14,8 @@ type RecentList struct {
 	data    chan []string
 }
 
+// NewRecents takes in the number of messages requested
+// and retruns a populated/populating RecentList struct.
 func NewRecents(size int) *RecentList {
 	r := &RecentList{
 		recents: make([]string, size),
@@ -22,32 +29,44 @@ func NewRecents(size int) *RecentList {
 	return r
 }
 
+// dispatch is run as a goroutine to control access to a RecentList.
+// It waits for `Add` or `Data` to be called and handles opperations
+// in the order they appear in the channels r.add and r.reqData.
+// This is done to keep the RecentList struct threadsafe.
 func (r *RecentList) dispatch() {
 	for {
 		select {
+		// Add function called
 		case id := <-r.add:
 			r.recents[r.index] = id
 			r.index++
 			if !r.full && r.index == len(r.recents) {
-    				r.full = true
+				r.full = true
 			}
 			r.index %= len(r.recents)
+		// Data method called
 		case <-r.reqData:
-    			buflen := r.index
-    			if r.full {
-        			buflen = len(r.recents)
-    			}
-    			res := make([]string, buflen)
-    			copy(res, r.recents)
+			buflen := r.index
+			if r.full {
+				buflen = len(r.recents)
+			}
+			res := make([]string, buflen)
+			copy(res, r.recents)
 			r.data <- res
 		}
 	}
 }
 
+// Add attempts an addition to Recents List by sending the input ID to
+// the RecentList's add channel, triggering the corrosponding selection
+// in the dispatch goroutine.
 func (r *RecentList) Add(id string) {
 	r.add <- id
 }
 
+// The Data method requests a copy of the recentlist's data by sending an
+// empty value on a struct. This channel activity triggers the second case
+// of the select in dispatch.
 func (r *RecentList) Data() []string {
 	r.reqData <- struct{}{}
 	return <-r.data
