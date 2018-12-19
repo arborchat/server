@@ -1,6 +1,5 @@
 package main
 
-import "log"
 import messages "github.com/arborchat/arbor-go"
 
 // The RecentList structure is designed to be completely threadsafe
@@ -43,7 +42,7 @@ func (r *RecentList) dispatch() {
 		case msg := <-r.add:
 			// If parent message is in recent list,
 			parentIndex := -1
-			for i := 0; i < r.index; i++ {
+			for i := range r.recents {
 				if msg.Parent == r.recents[i] {
 					parentIndex = i
 					break
@@ -53,7 +52,6 @@ func (r *RecentList) dispatch() {
 			if parentIndex > 0 {
 				id := msg.UUID
 				r.recents[parentIndex] = id
-				log.Println("replaceing recent message " + msg.Parent + " with " + msg.UUID)
 			} else {
 				id := msg.UUID
 				r.recents[r.index] = id
