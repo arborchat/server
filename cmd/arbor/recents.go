@@ -50,17 +50,20 @@ func (r *RecentList) dispatch() {
 			}
 			// it is replaced by the new message.
 			if parentIndex > 0 {
-				id := msg.UUID
-				r.recents[parentIndex] = id
-			} else {
-				id := msg.UUID
-				r.recents[r.index] = id
-				r.index++
-				if !r.full && r.index == len(r.recents) {
-					r.full = true
-				}
-				r.index %= len(r.recents)
+    			// Shift from the parent index to the end of the queue
+    			for i := parentIndex; i != r.index;{
+        			r.recents[i] = r.recents[++i %= len(r.recents)]
+    			}
 			}
+
+			id := msg.UUID
+			r.recents[r.index] = id
+			r.index++
+			if !r.full && r.index == len(r.recents) {
+				r.full = true
+			}
+			r.index %= len(r.recents)
+
 		// Data method called
 		case <-r.reqData:
 			buflen := r.index
