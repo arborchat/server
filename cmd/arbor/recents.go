@@ -50,11 +50,11 @@ func (r *RecentList) dispatch() {
 			}
 			// it is replaced by the new message.
 			if parentIndex >= 0 {
-    			// Shift from the parent index to the end of the queue
-    			// to preserve FIFO rule
-    			for i := parentIndex; i != r.index;{
-        			r.recents[i] = r.recents[++i %= len(r.recents)]
-    			}
+				// Shift from the parent index to the end of the queue
+				// to preserve FIFO rule
+				for i := parentIndex; i != r.index; i = (i + 1) % len(r.recents) {
+					r.recents[i] = r.recents[(i+1)%len(r.recents)]
+				}
 			}
 
 			id := msg.UUID
