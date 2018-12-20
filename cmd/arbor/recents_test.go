@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	. "github.com/arborchat/arbor-go"
 	"github.com/onsi/gomega"
 )
 
@@ -10,15 +11,87 @@ import (
 // errors, but that valid sizes produce working RecentLists.
 func TestRecentListConstructor(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
+
 	r, err := NewRecents(-1)
 	g.Expect(err).ToNot(gomega.BeNil())
 	g.Expect(r).To(gomega.BeNil())
+
 	r, err = NewRecents(0)
 	g.Expect(err).ToNot(gomega.BeNil())
 	g.Expect(r).To(gomega.BeNil())
+
 	r, err = NewRecents(1)
 	g.Expect(err).To(gomega.BeNil())
 	g.Expect(r).ToNot(gomega.BeNil())
+
 	data := r.Data()
 	g.Expect(data).To(gomega.BeEmpty())
+}
+
+func TestRecentListRemoveParent(t *testing.T) {
+	//g := gomega.NewGomegaWithT(t)
+	//r, _ := NewRecents(5)
+
+	//m0, _ := NewChatMessage("message 0")
+	//m1, _ := NewChatMessage("message 1")
+	////m1
+	//m2, _ := NewChatMessage("message 2")
+	//m3, _ := NewChatMessage("message 3")
+	//m4, _ := NewChatMessage("message 4")
+	//m5, _ := NewChatMessage("message 5")
+	//m6, _ := NewChatMessage("message 6")
+	//m7, _ := NewChatMessage("message 7")
+	//m8, _ := NewChatMessage("message 8")
+}
+
+func TestRecentListAddsNewMessages(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	r, err := NewRecents(5)
+	g.Expect(err).To(gomega.BeNil())
+	g.Expect(r).ToNot(gomega.BeNil())
+
+	m0, _ := NewChatMessage("message 0")
+	m0.AssignID()
+	r.Add(m0)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m0.UUID))
+
+	m1, _ := NewChatMessage("message 1")
+	m1.AssignID()
+	r.Add(m1)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m1.UUID))
+
+	m2, _ := NewChatMessage("message 2")
+	m2.AssignID()
+	r.Add(m2)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m2.UUID))
+
+	m3, _ := NewChatMessage("message 3")
+	m3.AssignID()
+	r.Add(m3)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m3.UUID))
+
+	m4, _ := NewChatMessage("message 4")
+	m4.AssignID()
+	r.Add(m4)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m4.UUID))
+
+	m5, _ := NewChatMessage("message 5")
+	m5.AssignID()
+	r.Add(m5)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m5.UUID))
+
+	m6, _ := NewChatMessage("message 6")
+	m6.AssignID()
+	r.Add(m6)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m6.UUID))
+
+	m7, _ := NewChatMessage("message 7")
+	m7.AssignID()
+	r.Add(m7)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m7.UUID))
+
+	m8, _ := NewChatMessage("message 8")
+	m8.AssignID()
+	r.Add(m8)
+	g.Expect(r.Data()).Should(gomega.ContainElement(m8.UUID))
 }
