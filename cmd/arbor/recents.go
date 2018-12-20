@@ -49,8 +49,9 @@ func (r *RecentList) dispatch() {
 				}
 			}
 			// it is replaced by the new message.
-			if parentIndex > 0 {
+			if parentIndex >= 0 {
     			// Shift from the parent index to the end of the queue
+    			// to preserve FIFO rule
     			for i := parentIndex; i != r.index;{
         			r.recents[i] = r.recents[++i %= len(r.recents)]
     			}
@@ -65,6 +66,7 @@ func (r *RecentList) dispatch() {
 			r.index %= len(r.recents)
 
 		// Data method called
+
 		case <-r.reqData:
 			buflen := r.index
 			if r.full {
