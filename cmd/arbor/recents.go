@@ -1,5 +1,11 @@
 package main
 
+import (
+	"fmt"
+
+	messages "github.com/arborchat/arbor-go"
+)
+
 type RecentList struct {
 	recents []string
 	index   int
@@ -9,7 +15,10 @@ type RecentList struct {
 	data    chan []string
 }
 
-func NewRecents(size int) *RecentList {
+func NewRecents(size int) (*RecentList, error) {
+	if size <= 0 {
+		return nil, fmt.Errorf("Invalid size for recents: %d", size)
+	}
 	r := &RecentList{
 		recents: make([]string, size),
 		add:     make(chan string),
@@ -19,7 +28,7 @@ func NewRecents(size int) *RecentList {
 		index:   0,
 	}
 	go r.dispatch()
-	return r
+	return r, nil
 }
 
 func (r *RecentList) dispatch() {
@@ -29,16 +38,16 @@ func (r *RecentList) dispatch() {
 			r.recents[r.index] = id
 			r.index++
 			if !r.full && r.index == len(r.recents) {
-    				r.full = true
+				r.full = true
 			}
 			r.index %= len(r.recents)
 		case <-r.reqData:
-    			buflen := r.index
-    			if r.full {
-        			buflen = len(r.recents)
-    			}
-    			res := make([]string, buflen)
-    			copy(res, r.recents)
+			buflen := r.index
+			if r.full {
+				buflen = len(r.recents)
+			}
+			res := make([]string, buflen)
+			copy(res, r.recents)
 			r.data <- res
 		}
 	}

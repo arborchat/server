@@ -11,8 +11,11 @@ import (
 func main() {
 	messages := NewStore()
 	broadcaster := NewBroadcaster()
-	recents := NewRecents(10)
 	address := ":7777"
+	recents, err := NewRecents(10)
+	if err != nil {
+		log.Fatalln("Unable to initialize Recents", err)
+	}
 	//serve
 	if len(os.Args) > 1 {
 		address = os.Args[1]
