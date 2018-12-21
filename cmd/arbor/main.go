@@ -99,7 +99,7 @@ func handleNewMessage(msg *ProtocolMessage, recents *RecentList, store *Store, b
 	if err != nil {
 		log.Println("Error creating new message", err)
 	}
-	recents.Add(msg.ChatMessage.UUID)
+	recents.Add(msg.ChatMessage)
 	store.Add(msg.ChatMessage)
 	broadcaster.Send(msg)
 }

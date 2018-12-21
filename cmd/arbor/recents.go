@@ -53,8 +53,8 @@ func (r *RecentList) dispatch() {
 	}
 }
 
-func (r *RecentList) Add(id string) {
-	r.add <- id
+func (r *RecentList) Add(msg *messages.ChatMessage) {
+	r.add <- msg.UUID
 }
 
 func (r *RecentList) Data() []string {
