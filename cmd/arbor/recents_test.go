@@ -29,12 +29,26 @@ func TestRecentListConstructor(t *testing.T) {
 }
 
 func TestRecentListRemoveParent(t *testing.T) {
-	//g := gomega.NewGomegaWithT(t)
-	//r, _ := NewRecents(5)
+	g := gomega.NewGomegaWithT(t)
+	r1, _ := NewRecents(5)
+	r2, _ := NewRecents(5)
 
-	//m0, _ := NewChatMessage("message 0")
-	//m1, _ := NewChatMessage("message 1")
-	////m1
+	m0, _ := NewChatMessage("message 0")
+	m0.AssignID()
+	r1.Add(m0)
+	r2.Add(m0)
+
+	// r1 contains m1 with no parent ID
+	// r2 contains m1 with m0 as parent
+	// so m0 should be removed from recents
+	m1, _ := NewChatMessage("message 1")
+	m1.AssignID()
+	r1.Add(m1)
+	m1.Parent = m0.UUID
+	r2.Add(m1)
+	g.Expect(r1.Data()).Should(gomega.ContainElement(m0.UUID))
+	g.Expect(r2.Data()).ShouldNot(gomega.ContainElement(m0.UUID))
+
 	//m2, _ := NewChatMessage("message 2")
 	//m3, _ := NewChatMessage("message 3")
 	//m4, _ := NewChatMessage("message 4")
@@ -79,19 +93,27 @@ func TestRecentListAddsNewMessages(t *testing.T) {
 	m5.AssignID()
 	r.Add(m5)
 	g.Expect(r.Data()).Should(gomega.ContainElement(m5.UUID))
+	g.Expect(r.Data()).Should(gomega.ContainElement(m1.UUID))
+	g.Expect(r.Data()).ShouldNot(gomega.ContainElement(m0.UUID))
 
 	m6, _ := NewChatMessage("message 6")
 	m6.AssignID()
 	r.Add(m6)
 	g.Expect(r.Data()).Should(gomega.ContainElement(m6.UUID))
+	g.Expect(r.Data()).Should(gomega.ContainElement(m2.UUID))
+	g.Expect(r.Data()).ShouldNot(gomega.ContainElement(m1.UUID))
 
 	m7, _ := NewChatMessage("message 7")
 	m7.AssignID()
 	r.Add(m7)
 	g.Expect(r.Data()).Should(gomega.ContainElement(m7.UUID))
+	g.Expect(r.Data()).Should(gomega.ContainElement(m3.UUID))
+	g.Expect(r.Data()).ShouldNot(gomega.ContainElement(m2.UUID))
 
 	m8, _ := NewChatMessage("message 8")
 	m8.AssignID()
 	r.Add(m8)
 	g.Expect(r.Data()).Should(gomega.ContainElement(m8.UUID))
+	g.Expect(r.Data()).Should(gomega.ContainElement(m4.UUID))
+	g.Expect(r.Data()).ShouldNot(gomega.ContainElement(m3.UUID))
 }
