@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"testing"
 
 	. "github.com/arborchat/arbor-go"
@@ -36,19 +38,20 @@ func TestRecentListRemoveParentVacancy(t *testing.T) {
 	if err != nil {
 		t.Skip("Failed to create RecentList", err)
 	}
+	g.Expect(r.Data()).Should(gomega.BeEmpty())
 
 	m0, err := NewChatMessage("message 0")
 	if err != nil {
 		t.Skip("Failed to create message")
 	}
-	m0.AssignID()
+	m0.UUID = "first"
 	r.Add(m0)
 
 	m1, err := m0.Reply("message1")
 	if err != nil {
 		t.Skip("Failed to reply to message")
 	}
-	m1.AssignID()
+	m1.UUID = "second"
 
 	for i := 0; i < 7; i++ {
 		r.Add(m1)
@@ -59,7 +62,10 @@ func TestRecentListRemoveParentVacancy(t *testing.T) {
 		if err != nil {
 			t.Skip("Failed to reply to message")
 		}
-		m1.AssignID()
+		m1.UUID = fmt.Sprintf("%dth", i+3)
+		log.Printf("message %d added", i)
+		log.Printf("M0: %s", m0.UUID)
+		log.Printf("M1: %s", m1.UUID)
 	}
 }
 

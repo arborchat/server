@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	messages "github.com/arborchat/arbor-go"
 )
@@ -27,7 +28,7 @@ func NewRecents(size int) (*RecentList, error) {
 		return nil, fmt.Errorf("Invalid size for recents: %d", size)
 	}
 	r := &RecentList{
-		recents: make([]string, size),
+		recents: make([]string, 0, size),
 		add:     make(chan *messages.ChatMessage),
 		reqData: make(chan struct{}),
 		data:    make(chan []string),
@@ -55,22 +56,29 @@ func (r *RecentList) dispatch() {
 					break
 				}
 			}
+
 			// it is replaced by the new message.
 			if parentIndex >= 0 {
 				// Shift from the parent index to the end of the queue
 				// to preserve FIFO rule
-				for i := parentIndex; i != r.index; i = (i + 1) % len(r.recents) {
+				for i := parentIndex; i != r.index && len(r.recents) > 1; i = (i + 1) % len(r.recents) {
+					log.Printf("Shifting %d\n", i)
 					r.recents[i] = r.recents[(i+1)%len(r.recents)]
+					log.Println(r.recents)
 				}
+				r.index--
+			} else if len(r.recents) < cap(r.recents) {
+				// Resize slice
+				r.recents = r.recents[:len(r.recents)+1]
 			}
 
 			id := msg.UUID
 			r.recents[r.index] = id
 			r.index++
-			if !r.full && r.index == len(r.recents) {
+			if !r.full && r.index == cap(r.recents) {
 				r.full = true
 			}
-			r.index %= len(r.recents)
+			r.index %= cap(r.recents)
 
 		// Data method called
 		case <-r.reqData:
