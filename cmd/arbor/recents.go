@@ -1,6 +1,10 @@
 package main
 
-import messages "github.com/arborchat/arbor-go"
+import (
+	"fmt"
+
+	messages "github.com/arborchat/arbor-go"
+)
 
 // The RecentList structure is designed to be completely threadsafe
 // by ensuring that all operations that touch its data occur in the
@@ -18,7 +22,10 @@ type RecentList struct {
 
 // NewRecents takes in the number of messages requested
 // and retruns a populated/populating RecentList struct.
-func NewRecents(size int) *RecentList {
+func NewRecents(size int) (*RecentList, error) {
+	if size <= 0 {
+		return nil, fmt.Errorf("Invalid size for recents: %d", size)
+	}
 	r := &RecentList{
 		recents: make([]string, size),
 		add:     make(chan *messages.ChatMessage),
@@ -28,7 +35,7 @@ func NewRecents(size int) *RecentList {
 		index:   0,
 	}
 	go r.dispatch()
-	return r
+	return r, nil
 }
 
 // dispatch is run as a goroutine to control access to a RecentList.
@@ -66,7 +73,6 @@ func (r *RecentList) dispatch() {
 			r.index %= len(r.recents)
 
 		// Data method called
-
 		case <-r.reqData:
 			buflen := r.index
 			if r.full {
