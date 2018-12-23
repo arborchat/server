@@ -106,12 +106,12 @@ func (r *RecentList) removeParent(msg *messages.ChatMessage) bool {
 	// Remove parent
 	if parentIndex >= 0 {
 		// Remove elements
-		for i := parentIndex; i != r.index; i = (i + 1) % cap(r.recents) {
+		for i := parentIndex; i != r.index; i = (i + 1) % len(r.recents) {
 			log.Printf("i:       %d\n", i)
 			log.Printf("index:   %d\n", r.index)
-			log.Printf("recents: %d\n", cap(r.recents))
+			log.Printf("recents: %d\n", len(r.recents))
 			log.Println()
-			r.recents[i] = r.recents[(i+1)%cap(r.recents)]
+			r.recents[i] = r.recents[(i+1)%len(r.recents)]
 		}
 
 		// Fix index
