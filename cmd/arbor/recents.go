@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	messages "github.com/arborchat/arbor-go"
 )
@@ -48,26 +47,7 @@ func (r *RecentList) dispatch() {
 		select {
 		// Add function called
 		case msg := <-r.add:
-			// If parent message is in recent list,
-			parentIndex := -1
-			for i := range r.recents {
-				if msg.Parent == r.recents[i] {
-					parentIndex = i
-					break
-				}
-			}
-
-			// it is replaced by the new message.
-			if parentIndex >= 0 {
-				// Shift from the parent index to the end of the queue
-				// to preserve FIFO rule
-				for i := parentIndex; i != r.index && len(r.recents) > 1; i = (i + 1) % len(r.recents) {
-					log.Printf("Shifting %d\n", i)
-					r.recents[i] = r.recents[(i+1)%len(r.recents)]
-					log.Println(r.recents)
-				}
-				r.index--
-			} else if len(r.recents) < cap(r.recents) {
+			if r.removeParent(msg) && len(r.recents) < cap(r.recents) {
 				// Resize slice
 				r.recents = r.recents[:len(r.recents)+1]
 			}
@@ -75,6 +55,7 @@ func (r *RecentList) dispatch() {
 			id := msg.UUID
 			r.recents[r.index] = id
 			r.index++
+
 			if !r.full && r.index == cap(r.recents) {
 				r.full = true
 			}
@@ -106,4 +87,34 @@ func (r *RecentList) Add(msg *messages.ChatMessage) {
 func (r *RecentList) Data() []string {
 	r.reqData <- struct{}{}
 	return <-r.data
+}
+
+// RemoveParent removes the parent UUID of msg, while maintaining the FIFO
+// nature of the RecentList queue.
+func (r *RecentList) removeParent(msg *messages.ChatMessage) bool {
+	parentID := msg.Parent
+	parentIndex := -1
+
+	// Locate parent
+	for i := 0; parentIndex >= 0 && i < len(r.recents); i++ {
+		if parentID == r.recents[i] {
+			parentIndex = i
+		}
+	}
+
+	// Remove parent
+	if parentIndex >= 0 {
+		// Remove elements
+		for i := parentIndex; i != r.index; i = (i + 1) % len(r.recents) {
+			r.recents[i] = r.recents[(i+1)%len(r.recents)]
+		}
+		// Fix index
+		r.index--
+		if r.index < 0 {
+			r.index = len(r.recents) - 1
+		}
+	}
+
+	return parentIndex >= 0
+
 }
