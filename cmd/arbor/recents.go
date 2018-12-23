@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	messages "github.com/arborchat/arbor-go"
 )
@@ -47,7 +48,7 @@ func (r *RecentList) dispatch() {
 		select {
 		// Add function called
 		case msg := <-r.add:
-			if r.removeParent(msg) && len(r.recents) < cap(r.recents) {
+			if !r.removeParent(msg) && len(r.recents) < cap(r.recents) {
 				// Resize slice
 				r.recents = r.recents[:len(r.recents)+1]
 			}
@@ -96,8 +97,8 @@ func (r *RecentList) removeParent(msg *messages.ChatMessage) bool {
 	parentIndex := -1
 
 	// Locate parent
-	for i := 0; parentIndex >= 0 && i < len(r.recents); i++ {
-		if parentID == r.recents[i] {
+	for i := 0; parentIndex < 0 && i < cap(r.recents); i++ {
+		if r.recents[i] == parentID {
 			parentIndex = i
 		}
 	}
@@ -105,13 +106,18 @@ func (r *RecentList) removeParent(msg *messages.ChatMessage) bool {
 	// Remove parent
 	if parentIndex >= 0 {
 		// Remove elements
-		for i := parentIndex; i != r.index; i = (i + 1) % len(r.recents) {
-			r.recents[i] = r.recents[(i+1)%len(r.recents)]
+		for i := parentIndex; i != r.index; i = (i + 1) % cap(r.recents) {
+			log.Printf("i:       %d\n", i)
+			log.Printf("index:   %d\n", r.index)
+			log.Printf("recents: %d\n", cap(r.recents))
+			log.Println()
+			r.recents[i] = r.recents[(i+1)%cap(r.recents)]
 		}
+
 		// Fix index
 		r.index--
 		if r.index < 0 {
-			r.index = len(r.recents) - 1
+			r.index = cap(r.recents) - 1
 		}
 	}
 
