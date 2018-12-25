@@ -48,23 +48,30 @@ func (r *RecentList) dispatch() {
 		select {
 		// Add function called
 		case msg := <-r.add:
-			if !r.removeParent(msg) && len(r.recents) < cap(r.recents) {
+			log.Printf("Recents before Dispatch: %s\n", r.recents)
+			log.Printf("index:   %d\n", r.index)
+			log.Printf("length:  %d\n", len(r.recents))
+			log.Printf("recents: %s\n", r.recents)
+			parentRemoved := r.removeParent(msg)
+			if !parentRemoved && len(r.recents) < cap(r.recents) {
 				// Resize slice
 				r.recents = r.recents[:len(r.recents)+1]
 			}
 
 			id := msg.UUID
+			log.Printf("Accessing:  %d\n", r.index)
 			r.recents[r.index] = id
 			r.index++
 
 			if !r.full && r.index == cap(r.recents) {
 				r.full = true
 			}
+			log.Printf("Recents after Dispatch: %s\n", r.recents)
 			r.index %= cap(r.recents)
 
 		// Data method called
 		case <-r.reqData:
-			buflen := r.index
+			buflen := len(r.recents)
 			if r.full {
 				buflen = len(r.recents)
 			}
@@ -93,11 +100,17 @@ func (r *RecentList) Data() []string {
 // RemoveParent removes the parent UUID of msg, while maintaining the FIFO
 // nature of the RecentList queue.
 func (r *RecentList) removeParent(msg *messages.ChatMessage) bool {
+	log.Printf("Adding %s\n", msg.UUID)
+	log.Printf("Recents before add: %s\n", r.recents)
+	if len(r.recents) == 0 {
+		return false
+	}
+
 	parentID := msg.Parent
 	parentIndex := -1
 
 	// Locate parent
-	for i := 0; parentIndex < 0 && i < cap(r.recents); i++ {
+	for i := 0; parentIndex < 0 && i < len(r.recents); i++ {
 		if r.recents[i] == parentID {
 			parentIndex = i
 		}
@@ -105,22 +118,15 @@ func (r *RecentList) removeParent(msg *messages.ChatMessage) bool {
 
 	// Remove parent
 	if parentIndex >= 0 {
-		// Remove elements
-		for i := parentIndex; i != r.index; i = (i + 1) % len(r.recents) {
-			log.Printf("i:       %d\n", i)
-			log.Printf("index:   %d\n", r.index)
-			log.Printf("recents: %d\n", len(r.recents))
+		// Move elements
+		for i := 0; len(r.recents) > 1 && (i+parentIndex)%len(r.recents) != r.index; i++ {
+			index := (i + parentIndex) % len(r.recents)
+			log.Printf("index: %d\n", i)
 			log.Println()
-			r.recents[i] = r.recents[(i+1)%len(r.recents)]
+			r.recents[index] = r.recents[(index+1)%len(r.recents)]
 		}
-
-		// Fix index
 		r.index--
-		if r.index < 0 {
-			r.index = cap(r.recents) - 1
-		}
 	}
-
+	log.Printf("Recents after add: %s\n", r.recents)
 	return parentIndex >= 0
-
 }
