@@ -46,7 +46,7 @@ func TestRecentListRemoveParentVacancy(t *testing.T) {
 	}
 	m0.UUID = "first"
 	r.Add(m0)
-	log.Printf("Adding m0: %s", r.Data())
+	log.Printf("Adding m %s: %s", m0.UUID, r.Data())
 
 	m1, err := m0.Reply("message1")
 	if err != nil {
@@ -56,7 +56,7 @@ func TestRecentListRemoveParentVacancy(t *testing.T) {
 
 	for i := 0; i < 7; i++ {
 		r.Add(m1)
-		log.Printf("Adding m%s: %s", m1.UUID, r.Data())
+		log.Printf("Adding m %s: %s", m1.UUID, r.Data())
 		g.Expect(r.Data()).ShouldNot(gomega.ContainElement(m0.UUID))
 		g.Expect(r.Data()).Should(gomega.ContainElement(m1.UUID))
 		m0 = m1
