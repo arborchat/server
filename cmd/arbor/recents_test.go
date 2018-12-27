@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	. "github.com/arborchat/arbor-go"
@@ -46,7 +45,6 @@ func TestRecentListRemoveParentVacancy(t *testing.T) {
 	}
 	m0.UUID = "first"
 	r.Add(m0)
-	log.Printf("Adding m %s: %s", m0.UUID, r.Data())
 
 	m1, err := m0.Reply("message1")
 	if err != nil {
@@ -56,18 +54,14 @@ func TestRecentListRemoveParentVacancy(t *testing.T) {
 
 	for i := 0; i < 7; i++ {
 		r.Add(m1)
-		log.Printf("Adding m %s: %s", m1.UUID, r.Data())
 		g.Expect(r.Data()).ShouldNot(gomega.ContainElement(m0.UUID))
 		g.Expect(r.Data()).Should(gomega.ContainElement(m1.UUID))
 		m0 = m1
-		m1, err := m0.Reply("new message")
+		m1, err = m0.Reply("new message")
 		if err != nil {
 			t.Skip("Failed to reply to message")
 		}
 		m1.UUID = fmt.Sprintf("%dth", i+3)
-		log.Printf("message %d added", i)
-		log.Printf("M0: %s", m0.UUID)
-		log.Printf("M1: %s", m1.UUID)
 	}
 }
 
@@ -112,7 +106,7 @@ func TestRecentListRemoveParentFull(t *testing.T) {
 		g.Expect(r.Data()).Should(gomega.ContainElement(m1.UUID))
 		// Shift messages down the queue
 		m0 = m1
-		m1, err := m0.Reply("new message")
+		m1, err = m0.Reply("new message")
 		if err != nil {
 			t.Skip("Failed to reply to message")
 		}

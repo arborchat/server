@@ -2,38 +2,114 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	messages "github.com/arborchat/arbor-go"
 )
 
-// The RecentList structure is designed to be completely threadsafe
-// by ensuring that all operations that touch its data occur in the
-// same goroutine (dispatch()). This goroutine is launched in its
-// constructor, and it just infinitely loops in the dispatch method
-// waiting for activity on channels.
+// LeafList stores recent identifiers for elements in a tree. It has a fixed size, and will
+// remove old elements in order to add new ones once it reaches its capacity.
+type LeafList struct {
+	elements    []string
+	insertPoint int
+}
+
+// NewLeafList creates a LeafList with the given capacity.
+func NewLeafList(capacity int) (*LeafList, error) {
+	if capacity < 1 {
+		return nil, fmt.Errorf("Illegal capacity %d", capacity)
+	}
+	return &LeafList{
+		elements:    make([]string, 0, capacity),
+		insertPoint: 0,
+	}, nil
+}
+
+// Has returns whether or not the LeafList contains the provided identifier.
+func (r *LeafList) Has(s string) bool {
+	for _, v := range r.elements {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+// Add inserts the given element into the LeafList. If the element is already present, Add will
+// do nothing.
+func (r *LeafList) Add(s string) {
+	if r.Has(s) {
+		// If `s` is already present, no reason to do any extra work.
+		return
+	}
+	// if we are at the end of the list and are able to grow, grow
+	if r.insertPoint == len(r.elements) && len(r.elements) < cap(r.elements) {
+		r.elements = r.elements[:len(r.elements)+1]
+	}
+	// insert our new element
+	r.elements[r.insertPoint] = s
+	r.insertPoint = (r.insertPoint + 1) % cap(r.elements)
+}
+
+// Replace will remove `old` and then insert `s`. This is useful for removing the parent identifier
+// when adding a child.
+func (r *LeafList) Replace(old, s string) {
+	// find where `old` is within the LeafList
+	oldIndex := -1
+	for index := 0; index < len(r.elements); index++ {
+		if r.elements[index] == old {
+			oldIndex = index
+			break
+		}
+	}
+	// we only need to shift if `old` is present and is not the element that is about to be replaced
+	if oldIndex > -1 && oldIndex != r.insertPoint {
+		// shift every element back one position until we reach the insertionPoint
+		for oldIndex++; oldIndex != r.insertPoint; oldIndex = (oldIndex + 1) % cap(r.elements) {
+			r.elements[oldIndex-1] = r.elements[oldIndex]
+		}
+		// ensure that the Add() we are about to perform overwrites the duplicated element that
+		// we create at the end of the loop
+		r.insertPoint--
+	}
+	r.Add(s)
+}
+
+// AddOrReplace will replace `old` if it is present in the LeafList, and will add `s` if it is not.
+func (r *LeafList) AddOrReplace(old, s string) {
+	if r.Has(old) {
+		r.Replace(old, s)
+		return
+	}
+	r.Add(s)
+}
+
+// Elements returns a copy of the elements contained within the LeafList.
+func (r *LeafList) Elements() []string {
+	out := make([]string, len(r.elements))
+	copy(out, r.elements)
+	return out
+}
+
+// RecentList provides threadsafe access to a list of recent message identifiers.
 type RecentList struct {
-	recents []string
-	index   int
-	full    bool
+	*LeafList
 	add     chan *messages.ChatMessage
 	reqData chan struct{}
 	data    chan []string
 }
 
 // NewRecents takes in the number of messages requested
-// and retruns a populated/populating RecentList struct.
+// and returns a RecentList struct.
 func NewRecents(size int) (*RecentList, error) {
-	if size <= 0 {
-		return nil, fmt.Errorf("Invalid size for recents: %d", size)
+	leaves, err := NewLeafList(size)
+	if err != nil {
+		return nil, err
 	}
 	r := &RecentList{
-		recents: make([]string, 0, size),
-		add:     make(chan *messages.ChatMessage),
-		reqData: make(chan struct{}),
-		data:    make(chan []string),
-		full:    false,
-		index:   0,
+		LeafList: leaves,
+		add:      make(chan *messages.ChatMessage),
+		reqData:  make(chan struct{}),
+		data:     make(chan []string),
 	}
 	go r.dispatch()
 	return r, nil
@@ -48,85 +124,25 @@ func (r *RecentList) dispatch() {
 		select {
 		// Add function called
 		case msg := <-r.add:
-			log.Printf("Recents before Dispatch: %s\n", r.recents)
-			log.Printf("index:   %d\n", r.index)
-			log.Printf("length:  %d\n", len(r.recents))
-			log.Printf("recents: %s\n", r.recents)
-			parentRemoved := r.removeParent(msg)
-			if !parentRemoved && len(r.recents) < cap(r.recents) {
-				// Resize slice
-				r.recents = r.recents[:len(r.recents)+1]
-			}
-
-			id := msg.UUID
-			log.Printf("Accessing:  %d\n", r.index)
-			r.recents[r.index] = id
-			r.index++
-
-			if !r.full && r.index == cap(r.recents) {
-				r.full = true
-			}
-			log.Printf("Recents after Dispatch: %s\n", r.recents)
-			r.index %= cap(r.recents)
-
+			r.AddOrReplace(msg.Parent, msg.UUID)
 		// Data method called
 		case <-r.reqData:
-			buflen := len(r.recents)
-			if r.full {
-				buflen = len(r.recents)
-			}
-			res := make([]string, buflen)
-			copy(res, r.recents)
-			r.data <- res
+			r.data <- r.Elements()
 		}
 	}
 }
 
-// Add attempts an addition to Recents List by sending the input ID to
-// the RecentList's add channel, triggering the corrosponding selection
-// in the dispatch goroutine.
+// Add attempts to insert a message's id. It will replace its parent ID if the parent ID is present.
 func (r *RecentList) Add(msg *messages.ChatMessage) {
+	// Send the input ID to the add channel, triggering the corrosponding selection
+	// in the dispatch goroutine.
 	r.add <- msg
 }
 
-// The Data method requests a copy of the recentlist's data by sending an
-// empty value on a struct. This channel activity triggers the second case
-// of the select in dispatch.
+// Data requests a copy of the recentlist's data.
 func (r *RecentList) Data() []string {
+	// Send an empty value on a struct. This channel activity triggers the second case
+	// of the select in dispatch.
 	r.reqData <- struct{}{}
 	return <-r.data
-}
-
-// RemoveParent removes the parent UUID of msg, while maintaining the FIFO
-// nature of the RecentList queue.
-func (r *RecentList) removeParent(msg *messages.ChatMessage) bool {
-	log.Printf("Adding %s\n", msg.UUID)
-	log.Printf("Recents before add: %s\n", r.recents)
-	if len(r.recents) == 0 {
-		return false
-	}
-
-	parentID := msg.Parent
-	parentIndex := -1
-
-	// Locate parent
-	for i := 0; parentIndex < 0 && i < len(r.recents); i++ {
-		if r.recents[i] == parentID {
-			parentIndex = i
-		}
-	}
-
-	// Remove parent
-	if parentIndex >= 0 {
-		// Move elements
-		for i := 0; len(r.recents) > 1 && (i+parentIndex)%len(r.recents) != r.index; i++ {
-			index := (i + parentIndex) % len(r.recents)
-			log.Printf("index: %d\n", i)
-			log.Println()
-			r.recents[index] = r.recents[(index+1)%len(r.recents)]
-		}
-		r.index--
-	}
-	log.Printf("Recents after add: %s\n", r.recents)
-	return parentIndex >= 0
 }
