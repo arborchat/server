@@ -12,11 +12,12 @@ func main() {
 	ruser := flag.String("ruser", "root", "The username of the root message")
 	rid := flag.String("rid", "", "The id of the root message")
 	rcontent := flag.String("rcontent", "Welcome to our server!", "The content of the root message")
+	recentSize := flag.Int("recent-size", 100, "The number of messages to keep in the recents list")
 	flag.Parse()
 	messages := NewStore()
 	broadcaster := NewBroadcaster()
 	address := ":7777"
-	recents, err := NewRecents(10)
+	recents, err := NewRecents(*recentSize)
 	if err != nil {
 		log.Fatalln("Unable to initialize Recents", err)
 	}
