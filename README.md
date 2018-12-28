@@ -16,4 +16,10 @@ If you'd like to see where things stand, you should be able to do the following:
 go get github.com/arborchat/server/cmd/...
 ```
 
-Run the server with `arbor`, it listens on port 7777 by default.
+Run the server with `arbor`. It listens on port 7777 by default, but this can be changed by running with the port number as the first argument: `arbor 8080`.
+
+#### Flags
+- ruser         Running the server with the flag `-ruser foo` changes the username of the root user. Currently this will only change the root message spawned upon startup. The default username is "root".
+- rid           The `-rid XXXX` flag changes the UUID of the server's root message. The default root message ID is is "".
+- rcontent      `-rcontent bar` changes the content of the root message. If left out the root message will say "Welcome to our server!".
+- recent-size   The size of the recent list determines the number of new messages the server has cached to send to new clients upon connection. Starting the server with `-recent-size XXX` changes the starting number of the recents list. This flag **could** effect the optimization of the server. The lists defaults to a capacity of 100 items.
