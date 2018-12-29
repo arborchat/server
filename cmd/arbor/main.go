@@ -1,38 +1,47 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
-	"os"
 
 	. "github.com/arborchat/arbor-go"
 )
 
 func main() {
+	ruser := flag.String("ruser", "root", "The username of the root message")
+	rid := flag.String("rid", "", "The id of the root message")
+	rcontent := flag.String("rcontent", "Welcome to our server!", "The content of the root message")
+	recentSize := flag.Int("recent-size", 100, "The number of messages to keep in the recents list")
+	flag.Parse()
 	messages := NewStore()
 	broadcaster := NewBroadcaster()
 	address := ":7777"
-	recents, err := NewRecents(10)
+	recents, err := NewRecents(*recentSize)
 	if err != nil {
 		log.Fatalln("Unable to initialize Recents", err)
 	}
 	//serve
-	if len(os.Args) > 1 {
-		address = os.Args[1]
+	if len(flag.Args()) > 0 {
+		address = flag.Arg(0)
 	}
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Server listening on", address)
-	m, err := NewChatMessage("Welcome to our server!")
+	m, err := NewChatMessage(*rcontent)
 	if err != nil {
 		log.Println(err)
 	}
-	m.Username = "root"
-	err = m.AssignID()
-	if err != nil {
-		log.Println(err)
+	m.Username = *ruser
+	if *rid == "" {
+		err = m.AssignID()
+		if err != nil {
+			log.Println(err)
+		}
+	} else {
+		m.UUID = *rid
 	}
 	messages.Add(m)
 	toWelcome := make(chan chan<- *ProtocolMessage)
