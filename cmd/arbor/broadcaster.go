@@ -3,27 +3,31 @@ package main
 import (
 	"log"
 
-	messages "github.com/arborchat/arbor-go"
+	"github.com/arborchat/arbor-go"
 )
 
+// Broadcaster manages sending protocol messages to all members of a pool of clients.
 type Broadcaster struct {
-	send       chan *messages.ProtocolMessage
-	disconnect chan chan<- *messages.ProtocolMessage
-	connect    chan chan<- *messages.ProtocolMessage
-	clients    map[chan<- *messages.ProtocolMessage]struct{}
+	send       chan *arbor.ProtocolMessage
+	disconnect chan arbor.Writer
+	connect    chan arbor.Writer
+	clients    map[arbor.Writer]struct{}
 }
 
+// NewBroadcaster creates a broadcaster.
 func NewBroadcaster() *Broadcaster {
 	b := &Broadcaster{
-		send:       make(chan *messages.ProtocolMessage),
-		connect:    make(chan chan<- *messages.ProtocolMessage),
-		disconnect: make(chan chan<- *messages.ProtocolMessage),
-		clients:    make(map[chan<- *messages.ProtocolMessage]struct{}),
+		send:       make(chan *arbor.ProtocolMessage),
+		connect:    make(chan arbor.Writer),
+		disconnect: make(chan arbor.Writer),
+		clients:    make(map[arbor.Writer]struct{}),
 	}
 	go b.dispatch()
 	return b
 }
 
+// dispatch runs in its own goroutine and listens for activity on all of the Broadcaster's channels.
+// It updates its state when needed.
 func (b *Broadcaster) dispatch() {
 	for {
 		select {
@@ -40,21 +44,24 @@ func (b *Broadcaster) dispatch() {
 	}
 }
 
-func (b *Broadcaster) Send(message *messages.ProtocolMessage) {
+// Send sends a message to all clients in the managed pool of clients. Any client that
+// produces an error will be automatically removed from the pool.
+func (b *Broadcaster) Send(message *arbor.ProtocolMessage) {
 	b.send <- message
 }
 
-func (b *Broadcaster) trySend(message *messages.ProtocolMessage, client chan<- *messages.ProtocolMessage) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println("Error sending to client, removing: ", err)
-			b.disconnect <- client
-		}
-	}()
+// trySend attempts to send a message to the given client. If it produces an error, it
+// requests that the client be removed from the managed pool.
+func (b *Broadcaster) trySend(message *arbor.ProtocolMessage, client arbor.Writer) {
 	log.Println("trying send to ", client)
-	client <- message
+	err := client.Write(message)
+	if err != nil {
+		log.Println("Error sending to client, removing: ", err)
+		b.disconnect <- client
+	}
 }
 
-func (b *Broadcaster) Add(client chan<- *messages.ProtocolMessage) {
+// Add inserts a client into the managed pool.
+func (b *Broadcaster) Add(client arbor.Writer) {
 	b.connect <- client
 }
