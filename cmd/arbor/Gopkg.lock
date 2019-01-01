@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  branch = "validate"
   digest = "1:8daee056790af778375e4ebfd492231e109a253d5350d4d375cbf0e92bfe7ec7"
   name = "github.com/arborchat/arbor-go"
   packages = ["."]
   pruneopts = "UT"
   revision = "c121d4db43986e9e0028225f0ac4a426eea2b89b"
+  version = "v0.1.7"
 
 [[projects]]
   branch = "master"

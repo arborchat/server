@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/arborchat/arbor-go"
-  branch = "validate"
+  version = "0.1.7"
 
 [[constraint]]
   name = "github.com/onsi/gomega"
