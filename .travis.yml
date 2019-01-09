@@ -2,6 +2,6 @@ language: go
 dist: xenial
 install:
     - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-    - dep ensure
+    - cd cmd/arbor && dep ensure
 script:
     - go test -v -cover ./...
