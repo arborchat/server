@@ -77,7 +77,7 @@ func handleWelcomes(rootId string, recents *RecentList, toWelcome chan arbor.Wri
 			Type:  arbor.WelcomeType,
 			Root:  rootId,
 			Major: 0,
-			Minor: 1,
+			Minor: 2,
 		}
 		msg.Recent = recents.Data()
 
@@ -108,6 +108,8 @@ func handleClient(client arbor.ReadWriteCloser, recents *RecentList, store *arbo
 			go handleQuery(message, client, store)
 		case arbor.NewMessageType:
 			go handleNewMessage(message, recents, store, broadcaster)
+		case arbor.MetaType:
+			broadcaster.Send(message)
 		default:
 			log.Println("Unrecognized message type", message.Type)
 			return
