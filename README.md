@@ -5,9 +5,7 @@ as a tree of messages instead of an ordered list. This means that
 the conversation can organically diverge into several conversations
 without the messages appearing interleaved.
 
-Arbor is unbelievably primitive right now. With time, it may develop
-into something usable, but be warned that it is not currently a delightful
-user experience.
+You can get information about the Arbor project [here](https://man.sr.ht/~whereswaldon/arborchat/).
 
 ## Testing Arbor
 If you'd like to see where things stand, you should be able to do the following:
